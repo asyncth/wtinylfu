@@ -10,6 +10,10 @@ license = "MIT"
 keywords = ["cache", "lru", "lfu", "tinylfu", "w-tinylfu"]
 categories = ["algorithms", "caching", "data-structures"]
 
+[profile.release]
+codegen-units = 1
+lto = true
+
 [dependencies]
 bloomfilter = "1"
 count-min-sketch = "0.1.7"
