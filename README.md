@@ -20,8 +20,7 @@ fn main() {
 
 # Contributing
 
-Contributions are welcome! Currently this project is hosted both on
-[GitHub](https://github.com/asyncth/wtinylfu) and
-[sr.ht](https://git.sr.ht/~asyncth/wtinylfu). Contributions from either
-of these are accepted. Please follow [contributing guidelines](
-CONTRIBUTING.md).
+Contributions are welcome! Currently this project is hosted both on [
+GitHub](https://github.com/asyncth/wtinylfu) and [sr.ht](
+https://git.sr.ht/~asyncth/wtinylfu). Contributions from either of these
+are accepted. Please follow [contributing guidelines](CONTRIBUTING.md).
