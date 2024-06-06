@@ -1,7 +1,8 @@
-use lru::{KeyRef, LruCache};
+use lru::LruCache;
 use std::borrow::Borrow;
 use std::cmp;
 use std::hash::Hash;
+use std::num::NonZeroUsize;
 
 pub(crate) struct SlruCache<K: Hash + Eq, V> {
 	probationary_segment: LruCache<K, V>,
@@ -11,8 +12,8 @@ pub(crate) struct SlruCache<K: Hash + Eq, V> {
 impl<K: Hash + Eq, V> SlruCache<K, V> {
 	pub(crate) fn new(cap: usize) -> Self {
 		let f64_cap = cap as f64;
-		let probationary_cap = cmp::max(1, (f64_cap * 0.2) as usize);
-		let protected_cap = cmp::max(1, cap - probationary_cap);
+		let probationary_cap = NonZeroUsize::new(cmp::max(1, (f64_cap * 0.2) as usize)).expect("non zero size");
+		let protected_cap = NonZeroUsize::new(cmp::max(1, cap - probationary_cap.get())).expect("non zero size");
 
 		Self {
 			probationary_segment: LruCache::new(probationary_cap),
@@ -46,7 +47,7 @@ impl<K: Hash + Eq, V> SlruCache<K, V> {
 
 	pub(crate) fn get<'a, Q>(&'a mut self, k: &Q) -> Option<&'a V>
 	where
-		KeyRef<K>: Borrow<Q>,
+		K: Borrow<Q>,
 		Q: Hash + Eq + ?Sized,
 	{
 		if let Some((k, v)) = self.probationary_segment.pop_entry(k) {
@@ -60,7 +61,7 @@ impl<K: Hash + Eq, V> SlruCache<K, V> {
 
 	pub(crate) fn get_mut<'a, Q>(&'a mut self, k: &Q) -> Option<&'a mut V>
 	where
-		KeyRef<K>: Borrow<Q>,
+		K: Borrow<Q>,
 		Q: Hash + Eq + ?Sized,
 	{
 		if let Some((k, v)) = self.probationary_segment.pop_entry(k) {
@@ -74,7 +75,7 @@ impl<K: Hash + Eq, V> SlruCache<K, V> {
 
 	pub(crate) fn peek<'a, Q>(&'a self, k: &Q) -> Option<&'a V>
 	where
-		KeyRef<K>: Borrow<Q>,
+		K: Borrow<Q>,
 		Q: Hash + Eq + ?Sized,
 	{
 		match self.probationary_segment.peek(k) {
@@ -85,7 +86,7 @@ impl<K: Hash + Eq, V> SlruCache<K, V> {
 
 	pub(crate) fn peek_mut<'a, Q>(&'a mut self, k: &Q) -> Option<&'a mut V>
 	where
-		KeyRef<K>: Borrow<Q>,
+		K: Borrow<Q>,
 		Q: Hash + Eq + ?Sized,
 	{
 		match self.probationary_segment.peek_mut(k) {
@@ -95,15 +96,15 @@ impl<K: Hash + Eq, V> SlruCache<K, V> {
 	}
 
 	#[inline]
-	pub(crate) fn peek_lru<'a>(&'_ self) -> Option<(&'a K, &'a V)> {
+	pub(crate) fn peek_lru<'a>(&'a self) -> Option<(&'a K, &'a V)> {
 		match self.probationary_segment.peek_lru() {
 			Some((k, v)) => Some((k, v)),
 			None => self.protected_segment.peek_lru(),
 		}
 	}
 
-	pub(crate) fn peek_lru_if_full<'a>(&'_ self) -> Option<(&'a K, &'a V)> {
-		if self.probationary_segment.len() != self.probationary_segment.cap() {
+	pub(crate) fn peek_lru_if_full<'a>(&'a self) -> Option<(&'a K, &'a V)> {
+		if self.probationary_segment.len() != self.probationary_segment.cap().get() {
 			return None;
 		}
 
@@ -112,7 +113,7 @@ impl<K: Hash + Eq, V> SlruCache<K, V> {
 
 	pub(crate) fn contains<Q>(&self, k: &Q) -> bool
 	where
-		KeyRef<K>: Borrow<Q>,
+		K: Borrow<Q>,
 		Q: Hash + Eq + ?Sized,
 	{
 		match self.probationary_segment.contains(k) {
@@ -123,7 +124,7 @@ impl<K: Hash + Eq, V> SlruCache<K, V> {
 
 	pub(crate) fn pop<Q>(&mut self, k: &Q) -> Option<V>
 	where
-		KeyRef<K>: Borrow<Q>,
+		K: Borrow<Q>,
 		Q: Hash + Eq + ?Sized,
 	{
 		match self.probationary_segment.pop(k) {
@@ -134,7 +135,7 @@ impl<K: Hash + Eq, V> SlruCache<K, V> {
 
 	pub(crate) fn pop_entry<Q>(&mut self, k: &Q) -> Option<(K, V)>
 	where
-		KeyRef<K>: Borrow<Q>,
+		K: Borrow<Q>,
 		Q: Hash + Eq + ?Sized,
 	{
 		match self.probationary_segment.pop_entry(k) {
@@ -155,13 +156,13 @@ impl<K: Hash + Eq, V> SlruCache<K, V> {
 	}
 
 	pub(crate) fn cap(&self) -> usize {
-		self.probationary_segment.cap() + self.protected_segment.cap()
+		self.probationary_segment.cap().get() + self.protected_segment.cap().get()
 	}
 
 	pub(crate) fn resize(&mut self, cap: usize) {
 		let f64_cap = cap as f64;
-		let probationary_cap = cmp::max(1, (f64_cap * 0.2) as usize);
-		let protected_cap = cmp::max(1, cap - probationary_cap);
+		let probationary_cap = NonZeroUsize::new(cmp::max(1, (f64_cap * 0.2) as usize)).expect("non zero size");
+		let protected_cap = NonZeroUsize::new(cmp::max(1, cap - probationary_cap.get())).expect("non zero size");
 
 		self.probationary_segment.resize(probationary_cap);
 		self.protected_segment.resize(protected_cap);

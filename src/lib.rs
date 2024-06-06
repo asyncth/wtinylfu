@@ -8,6 +8,7 @@ use lru::LruCache;
 use slru::SlruCache;
 use std::cmp;
 use std::hash::Hash;
+use std::num::NonZeroUsize;
 
 /// W-TinyLFU cache that uses Count Min Sketch as an approximation sketch.
 pub struct WTinyLfuCache<K: Hash + Eq, V> {
@@ -23,8 +24,8 @@ impl<K: Hash + Eq, V> WTinyLfuCache<K, V> {
 	/// Creates an W-TinyLFU cache that can hold up to `cap` key-value pairs.
 	pub fn new(cap: usize, sample_size: usize) -> Self {
 		let f64_cap: f64 = cap as f64;
-		let window_cache_cap = cmp::max(1, (f64_cap * 0.01) as usize);
-		let main_cache_cap = cmp::max(1, cap - window_cache_cap);
+		let window_cache_cap = NonZeroUsize::new(cmp::max(1, (f64_cap * 0.01) as usize)).expect("non zero");
+		let main_cache_cap = cmp::max(1, cap - window_cache_cap.get());
 
 		Self {
 			approximation_sketch: CountMinSketch16::new(sample_size * 2, 0.97, 4.0).unwrap(),
@@ -221,14 +222,14 @@ impl<K: Hash + Eq, V> WTinyLfuCache<K, V> {
 
 	/// Returns the capacity of the cache (the maximum number of key-value pairs that the cache can store).
 	pub fn cap(&self) -> usize {
-		self.window_cache.cap() + self.main_cache.cap()
+		self.window_cache.cap().get() + self.main_cache.cap()
 	}
 
 	/// Resizes the cache. If the new capacity is smaller than the size of the current cache any entries past the new capacity are discarded.
 	pub fn resize(&mut self, cap: usize) {
 		let f64_cap: f64 = cap as f64;
-		let window_cache_cap = cmp::max(1, (f64_cap * 0.01) as usize);
-		let main_cache_cap = cmp::max(1, cap - window_cache_cap);
+		let window_cache_cap = NonZeroUsize::new(cmp::max(1, (f64_cap * 0.01) as usize)).expect("non zero size");
+		let main_cache_cap = cmp::max(1, cap - window_cache_cap.get());
 
 		self.window_cache.resize(window_cache_cap);
 		self.main_cache.resize(main_cache_cap);

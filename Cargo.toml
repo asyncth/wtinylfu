@@ -1,6 +1,6 @@
 [package]
 name = "wtinylfu"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["asyncth <asyncthry@gmail.com>"]
 edition = "2021"
 description = "An implementation of W-TinyLFU cache"
@@ -17,4 +17,4 @@ lto = true
 [dependencies]
 bloomfilter = "1"
 count-min-sketch = "0.1.7"
-lru = "0.7.6"
+lru = { version = "0.12", default-features = false }
