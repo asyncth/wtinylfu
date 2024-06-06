@@ -12,8 +12,10 @@ pub(crate) struct SlruCache<K: Hash + Eq, V> {
 impl<K: Hash + Eq, V> SlruCache<K, V> {
 	pub(crate) fn new(cap: usize) -> Self {
 		let f64_cap = cap as f64;
-		let probationary_cap = NonZeroUsize::new(cmp::max(1, (f64_cap * 0.2) as usize)).expect("non zero size");
-		let protected_cap = NonZeroUsize::new(cmp::max(1, cap - probationary_cap.get())).expect("non zero size");
+		let probationary_cap =
+			NonZeroUsize::new(cmp::max(1, (f64_cap * 0.2) as usize)).expect("non zero size");
+		let protected_cap =
+			NonZeroUsize::new(cmp::max(1, cap - probationary_cap.get())).expect("non zero size");
 
 		Self {
 			probationary_segment: LruCache::new(probationary_cap),
@@ -96,14 +98,14 @@ impl<K: Hash + Eq, V> SlruCache<K, V> {
 	}
 
 	#[inline]
-	pub(crate) fn peek_lru<'a>(&'a self) -> Option<(&'a K, &'a V)> {
+	pub(crate) fn peek_lru(&self) -> Option<(&K, &V)> {
 		match self.probationary_segment.peek_lru() {
 			Some((k, v)) => Some((k, v)),
 			None => self.protected_segment.peek_lru(),
 		}
 	}
 
-	pub(crate) fn peek_lru_if_full<'a>(&'a self) -> Option<(&'a K, &'a V)> {
+	pub(crate) fn peek_lru_if_full(&self) -> Option<(&K, &V)> {
 		if self.probationary_segment.len() != self.probationary_segment.cap().get() {
 			return None;
 		}
@@ -161,8 +163,10 @@ impl<K: Hash + Eq, V> SlruCache<K, V> {
 
 	pub(crate) fn resize(&mut self, cap: usize) {
 		let f64_cap = cap as f64;
-		let probationary_cap = NonZeroUsize::new(cmp::max(1, (f64_cap * 0.2) as usize)).expect("non zero size");
-		let protected_cap = NonZeroUsize::new(cmp::max(1, cap - probationary_cap.get())).expect("non zero size");
+		let probationary_cap =
+			NonZeroUsize::new(cmp::max(1, (f64_cap * 0.2) as usize)).expect("non zero size");
+		let protected_cap =
+			NonZeroUsize::new(cmp::max(1, cap - probationary_cap.get())).expect("non zero size");
 
 		self.probationary_segment.resize(probationary_cap);
 		self.protected_segment.resize(protected_cap);
@@ -171,6 +175,12 @@ impl<K: Hash + Eq, V> SlruCache<K, V> {
 	pub(crate) fn clear(&mut self) {
 		self.probationary_segment.clear();
 		self.protected_segment.clear();
+	}
+
+	pub fn iter(&self) -> impl Iterator<Item = (&K, &V)> {
+		self.probationary_segment
+			.iter()
+			.chain(self.protected_segment.iter())
 	}
 }
 
@@ -195,9 +205,17 @@ mod tests {
 		assert_eq!(cache.get(&1), Some(&"one"));
 		assert_eq!(cache.get(&2), Some(&"two"));
 
+		let mut out = cache.iter().map(|(k, _)| *k).collect::<Vec<_>>();
+		out.sort();
+		assert_eq!(&out, &[1, 2]);
+
 		cache.pop(&1);
 		assert_eq!(cache.get(&1), None);
 		assert_eq!(cache.get(&2), Some(&"two"));
+
+		let mut out = cache.iter().map(|(k, _)| *k).collect::<Vec<_>>();
+		out.sort();
+		assert_eq!(&out, &[2]);
 	}
 
 	#[test]
@@ -223,6 +241,10 @@ mod tests {
 		cache.get(&1);
 		cache.get(&5);
 		assert_eq!(cache.peek_lru(), Some((&3, &"three")));
+
+		let mut out = cache.iter().map(|(k, _)| *k).collect::<Vec<_>>();
+		out.sort();
+		assert_eq!(&out, &[1, 2, 3, 4, 5]);
 	}
 
 	#[test]
@@ -262,5 +284,6 @@ mod tests {
 		assert_eq!(cache.get(&2), None);
 		assert_eq!(cache.len(), 0);
 		assert_eq!(cache.cap(), 10);
+		assert_eq!(cache.iter().count(), 0);
 	}
 }
