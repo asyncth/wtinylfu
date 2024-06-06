@@ -24,7 +24,8 @@ impl<K: Hash + Eq, V> WTinyLfuCache<K, V> {
 	/// Creates an W-TinyLFU cache that can hold up to `cap` key-value pairs.
 	pub fn new(cap: usize, sample_size: usize) -> Self {
 		let f64_cap: f64 = cap as f64;
-		let window_cache_cap = NonZeroUsize::new(cmp::max(1, (f64_cap * 0.01) as usize)).expect("non zero");
+		let window_cache_cap =
+			NonZeroUsize::new(cmp::max(1, (f64_cap * 0.01) as usize)).expect("non zero");
 		let main_cache_cap = cmp::max(1, cap - window_cache_cap.get());
 
 		Self {
@@ -228,7 +229,8 @@ impl<K: Hash + Eq, V> WTinyLfuCache<K, V> {
 	/// Resizes the cache. If the new capacity is smaller than the size of the current cache any entries past the new capacity are discarded.
 	pub fn resize(&mut self, cap: usize) {
 		let f64_cap: f64 = cap as f64;
-		let window_cache_cap = NonZeroUsize::new(cmp::max(1, (f64_cap * 0.01) as usize)).expect("non zero size");
+		let window_cache_cap =
+			NonZeroUsize::new(cmp::max(1, (f64_cap * 0.01) as usize)).expect("non zero size");
 		let main_cache_cap = cmp::max(1, cap - window_cache_cap.get());
 
 		self.window_cache.resize(window_cache_cap);
@@ -250,11 +252,38 @@ impl<K: Hash + Eq, V> WTinyLfuCache<K, V> {
 
 		estimate
 	}
+
+	/// An iterator visiting all entries in roughly most-recently used order.
+	///
+	/// # Examples
+	///
+	/// ```
+	/// use wtinylfu::WTinyLfuCache;
+	///
+	/// let mut cache = WTinyLfuCache::new(3, 10);
+	/// cache.put("a", 1);
+	/// cache.put("b", 2);
+	/// cache.put("c", 3);
+	///
+	/// for (key, val) in cache.iter() {
+	///     println!("key: {} val: {}", key, val);
+	/// }
+	/// ```
+	pub fn iter(&self) -> impl Iterator<Item = (&K, &V)> {
+		self.window_cache.iter().chain(self.main_cache.iter())
+	}
 }
 
 #[cfg(test)]
 mod tests {
 	use super::WTinyLfuCache;
+	use std::hash::Hash;
+
+	fn iter_keys<K: Hash + Eq + Ord + Copy, V>(cache: &WTinyLfuCache<K, V>) -> Vec<K> {
+		let mut out = cache.iter().map(|(k, _)| *k).collect::<Vec<_>>();
+		out.sort();
+		out
+	}
 
 	#[test]
 	fn store_and_retrieve_items() {
@@ -263,6 +292,7 @@ mod tests {
 		cache.push(2, "two");
 		assert_eq!(cache.get(&1), Some(&"one"));
 		assert_eq!(cache.get(&2), Some(&"two"));
+		assert_eq!(&iter_keys(&cache), &[1, 2]);
 	}
 
 	#[test]
@@ -276,6 +306,7 @@ mod tests {
 		cache.pop(&1);
 		assert_eq!(cache.get(&1), None);
 		assert_eq!(cache.get(&2), Some(&"two"));
+		assert_eq!(&iter_keys(&cache), &[2]);
 	}
 
 	#[test]
@@ -326,6 +357,8 @@ mod tests {
 		cache.get(&3);
 		assert_eq!(cache.cap(), 3);
 		assert_eq!(cache.len(), 3);
+
+		assert_eq!(&iter_keys(&cache), &[1, 2, 3]);
 	}
 
 	#[test]
@@ -337,11 +370,13 @@ mod tests {
 		assert_eq!(cache.get(&2), Some(&"two"));
 		assert_eq!(cache.len(), 2);
 		assert_eq!(cache.cap(), 10);
+		assert_eq!(&iter_keys(&cache), &[1, 2]);
 
 		cache.clear();
 		assert_eq!(cache.get(&1), None);
 		assert_eq!(cache.get(&2), None);
 		assert_eq!(cache.len(), 0);
 		assert_eq!(cache.cap(), 10);
+		assert_eq!(&iter_keys(&cache), &[]);
 	}
 }
