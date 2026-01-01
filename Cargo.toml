@@ -15,6 +15,6 @@ codegen-units = 1
 lto = true
 
 [dependencies]
-bloomfilter = "1"
-count-min-sketch = "0.1.7"
-lru = { version = "0.12", default-features = false }
+bloomfilter = "3"
+count-min-sketch = "0.1.8"
+lru = { version = "0.16.2", default-features = false }
