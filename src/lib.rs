@@ -32,7 +32,7 @@ impl<K: Hash + Eq, V> WTinyLfuCache<K, V> {
             approximation_sketch: CountMinSketch16::new(sample_size * 2, 0.97, 4.0).unwrap(),
             sample_size,
             sample_counter: 0,
-            doorkeeper: Bloom::new_for_fp_rate(sample_size, 0.01),
+            doorkeeper: Bloom::new_for_fp_rate(sample_size, 0.01).expect("could not generate random seed for the bloom filter"),
             window_cache: LruCache::new(window_cache_cap),
             main_cache: SlruCache::new(main_cache_cap),
         }
