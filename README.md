@@ -1,3 +1,11 @@
+> [!IMPORTANT]
+> Given that this library is rarely updated and is quite barebones,
+> consider using [Moka](https://crates.io/crates/moka) or
+> [Mini Moka](https://crates.io/crates/mini-moka) for caching. Strictly
+> speaking, the README claims that these libraries do not currently
+> implement W-TinyLFU, but rather use TinyLFU alone, but it probably
+> should be good enough anyway.
+
 # An implementation of W-TinyLFU cache
 
 Implements W-TinyLFU cache as proposed in "TinyLFU: A Highly Efficient
