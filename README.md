@@ -25,8 +25,3 @@ fn main() {
     assert_eq!(cache.get(&2), Some(&"two"));
 }
 ```
-
-# Contributing
-
-Contributions are welcome! Please follow
-[contributing guidelines](CONTRIBUTING.md).
